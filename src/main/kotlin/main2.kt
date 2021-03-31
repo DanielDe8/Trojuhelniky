@@ -287,8 +287,9 @@ class Tvar(var x: Int, var y: Int, val width: Int, val height: Int, val barva: C
     fun vykresli(obrazek: BufferedImage) {
         obrazek.createGraphics().apply { //Vytvoreni grafiky a aplikovani:
             color = barva
-            fillOval(x, y, this@Tvar.width, this@Tvar.height).apply { //Vytvoreni ctverce podle atributu (jedine dva nepouzivane atributy jsou platno a barva) a aplikovani:
+            fillRect(x, y, this@Tvar.width, this@Tvar.height).apply { //Vytvoreni ctverce podle atributu (jedine dva nepouzivane atributy jsou platno a barva) a aplikovani:
                 color = barva //Nastaveni barvy na barvu v atribbutech
+                rotate(Math.toRadians(rotace+0.0), width / 2.0, height / 2.0)
 //                fill(this) //Vybarveni this (ctverce)
             }//Konec aplikovani na ctverec
             // border
