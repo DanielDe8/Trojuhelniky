@@ -2,6 +2,7 @@ import java.awt.*                    //Importy
 import java.awt.image.BufferedImage
 import java.awt.image.DataBufferInt
 import java.io.File
+import java.lang.Math.pow
 import javax.imageio.ImageIO
 import javax.swing.Box
 import javax.swing.ImageIcon
@@ -10,8 +11,10 @@ import javax.swing.JLabel
 import kotlin.math.*
 import kotlin.random.Random
 
-
-val SIZE = arrayOf(400, 200) //Velikost okna
+val SIZE  = arrayOf(400, 200) //Velikost okna
+val cellSize = 10
+val TABLE = arrayOf((SIZE[0] / cellSize), (SIZE[1] / cellSize))
+val pocetTvaru = (TABLE[0] * TABLE[1])
 
 typealias X = Double  // Aliasy typu z vyres rovnici
 typealias XMin = Double
@@ -62,6 +65,19 @@ fun BufferedImage.resize(newW: Int, newH: Int): BufferedImage { //Zacatek funkce
     return dimg //Vraceni BufferedImage
 }//Konec funkce
 
+fun BufferedImage.nejcetnejsiBarva(): Color {
+    val data = raster.dataBuffer as DataBufferInt
+    val colors = Array(256*256*256) {0}
+
+    for (i in 0..data.data.size-1) {
+        val color = data.color(i)
+        colors[color.red*256*256 +color.green*256 +color.blue] += 1
+    }
+    val rgb = colors.withIndex().maxBy {it.value}!!.index
+
+    return Color(rgb)
+}
+
 fun main() { //Hlavni funkce
     // vytvoreni okna
     val platno = JLabel() //Vytvoreni platna na kresleni
@@ -79,13 +95,15 @@ fun main() { //Hlavni funkce
     }//Konec platna
 
     // obrazek ktery malujeme
-    val original = ImageIO.read(File("src/main/kotlin/tygr.jpg")).resize(SIZE[0], SIZE[1])//Nacteni a zmneneni velikosti obrazku ktery malujeme
+    val original = ImageIO.read(File("src/main/kotlin/morro.jpg")).resize(SIZE[0], SIZE[1])//Nacteni a zmneneni velikosti obrazku ktery malujeme
+    val prumernaBarva = original.nejcetnejsiBarva()
+
     val prazdnyObrazek = BufferedImage(SIZE[0], SIZE[1], BufferedImage.TYPE_INT_RGB) //Vytvoreni makety BufferedImage
     prazdnyObrazek.createGraphics().apply {
-        color = Color.WHITE
+        color = prumernaBarva
         fillRect(0, 0, SIZE[0], SIZE[1])
     }
-    val imitace = Tvar(0, 0, 0, 0, Color.RED, Platno(platno, original, prazdnyObrazek)) //Nevim
+    val imitace = Tvar(0, 0, 0, 0, Color.RED, 0, Platno(platno, original, prazdnyObrazek)) //Nevim
 
     platno_original.icon = ImageIcon(original)  //Pridani obrazku ktery malujeme do jeho platna
 
@@ -156,8 +174,7 @@ interface Jedinec<Jedinec> { //Zacatek jedince
     fun prijmout()
 
     /**
-     * Funkce new(klic, fn = Lambda): Vrati trochu zmneneneho jedince (ma 1 parametr(ktery urcuje klic) trochu jiny (jak jiny urcuje lambda funkce fn))
-     *
+     * Funkce new(klic, fn = Lambda): Vrati trochu zmneneneho jedince (ma 1 parametr(ktery urcuje klic) trochu jiny (jak jiny urcuje lambda funkce fn)<br>
      * @param fn funkce ktera zmeni dany atribut
      */
     fun new(key: Int, fn: (Int) -> Int): Jedinec {
@@ -216,35 +233,6 @@ interface Jedinec<Jedinec> { //Zacatek jedince
 //    }
 //}
 
-//typealias Pozice = Int
-//
-//class Trojuhelnik(val x: Array<Int>, val y: Array<Int>, val barva: Color) {
-//
-//    constructor(maxX: Int, maxY: Int) : this(
-//        x = arrayOf(Random.nextInt(0, maxX), Random.nextInt(0, maxX), Random.nextInt(0, maxX)),
-//        y = arrayOf(Random.nextInt(0, maxY), Random.nextInt(0, maxY), Random.nextInt(0, maxY)),
-//        barva = Color(Random.nextInt(0, 255), Random.nextInt(0, 255), Random.nextInt(0, 255)),
-//    )
-//
-//    fun vykresli(platno: Graphics2D) {
-//        platno.color = barva
-//        platno.fillPolygon(x.toIntArray(), y.toIntArray(), 3)
-//    }
-//
-//    fun mutace(): Trojuhelnik {
-//        val x = x.clone()
-//        val y = y.clone()
-//        var b = barva
-//        val znamenko = 2 * Random.nextInt(0, 2) - 1
-//        when (Random.nextInt(0, 3)) {
-//            0 -> x[Random.nextInt(0, x.size)] += znamenko * Random.nextInt(5, 10)
-//            1 -> y[Random.nextInt(0, y.size)] += znamenko * Random.nextInt(5, 10)
-//            else -> b = barva.mutace()
-//        }
-//        return Trojuhelnik(x, y, b)
-//    }
-//}
-
 /**
  * BufferedImage Funkce clone():  Naklonuje obrazek (BufferedImage)
  */
@@ -269,7 +257,7 @@ fun BufferedImage.obarvi(barva: Color): BufferedImage {
     return img
 }
 
-val stetec = ImageIO.read(File("src/main/kotlin/stetec1.png")).resize(30, 30)
+val stetec = ImageIO.read(File("src/main/kotlin/stetec1.png")).resize(cellSize, cellSize)
 
 /**
  * Nevim k cemu je platno
@@ -285,7 +273,7 @@ class Platno(val platno: JLabel, val original: BufferedImage, var imitace: Buffe
  * barvu (r g b) a
  * platno, na ktere se ma vykreslit
  */
-class Tvar(var x: Int, var y: Int, val width: Int, val height: Int, val barva: Color, val platno: Platno) : Jedinec<Tvar> {
+class Tvar(var x: Int, var y: Int, val width: Int, val height: Int, val barva: Color, var rotace: Int, val platno: Platno) : Jedinec<Tvar> {
 
     val obrazek = platno.imitace.clone() //Vytvoreni prazdneho obrazku
 
@@ -298,10 +286,11 @@ class Tvar(var x: Int, var y: Int, val width: Int, val height: Int, val barva: C
      */
     fun vykresli(obrazek: BufferedImage) {
         obrazek.createGraphics().apply { //Vytvoreni grafiky a aplikovani:
-//            Rectangle(x, y, width, height).apply { //Vytvoreni ctverce podle atributu (jedine dva nepouzivane atributy jsou platno a barva) a aplikovani:
-//                color = barva //Nastaveni barvy na barvu v atribbutech
+            color = barva
+            fillOval(x, y, this@Tvar.width, this@Tvar.height).apply { //Vytvoreni ctverce podle atributu (jedine dva nepouzivane atributy jsou platno a barva) a aplikovani:
+                color = barva //Nastaveni barvy na barvu v atribbutech
 //                fill(this) //Vybarveni this (ctverce)
-//            }//Konec aplikovani na ctverec
+            }//Konec aplikovani na ctverec
             // border
 //            Rectangle(x, y, width-1, height-1).apply {
 //                color = Color.BLACK
@@ -310,19 +299,19 @@ class Tvar(var x: Int, var y: Int, val width: Int, val height: Int, val barva: C
 //                draw(this)
 //            }
 
-            val i = BufferedImage(stetec.width, stetec.height, BufferedImage.TYPE_INT_ARGB)
-            i.createGraphics().apply {
-                rotate(Math.toRadians(x+y+0.0), i.width / 2.0, i.height / 2.0)
-                drawImage(stetec.obarvi(barva), 0,0, null)
-            }
-            drawImage(i, x, y, null)
+//            val i = BufferedImage(stetec.width, stetec.height, BufferedImage.TYPE_INT_ARGB)
+//            i.createGraphics().apply {
+//                rotate(Math.toRadians(x+y+0.0), i.width / 2.0, i.height / 2.0)
+//                drawImage(stetec.obarvi(barva), 0,0, null)
+//            }
+//            drawImage(i, x, y, null)
 
 
             dispose()
         }//Konec aplikovani na grafyku
     }//Konec funkce
 
-    override val size: Int = 7 //Prepsani promnene size na 7 (z jedince)
+    override val size: Int = 8 //Prepsani promnene size na 7 (z jedince)
     override val skore: Double = x.let { //Prepsani promnene skore, pouzivame lambda funkci let (promnenou skore to prepise na to, co vrati tato lambda funkce)
         var soucet = 0.0 //Definovani promnene soucet na 0.0
         var pocetPx = 0  //Definovani promnene pocetPx (pocetPixelu) na 0
@@ -352,7 +341,8 @@ class Tvar(var x: Int, var y: Int, val width: Int, val height: Int, val barva: C
      * 3. vrati vysku
      * 4. vrati cervenou barvu
      * 5. vrati zelenou barvu
-     * 6. cokoliv jineho vrati modrou barvu
+     * 6. vrati modrou barvu
+     * 7. cokoliv jineho vrati rotaci
      */
     override fun get(key: Int): Int {
         return when (key) {
@@ -362,7 +352,8 @@ class Tvar(var x: Int, var y: Int, val width: Int, val height: Int, val barva: C
             3 -> height
             4 -> barva.red
             5 -> barva.green
-            else -> barva.blue
+            6 -> barva.blue
+            else -> rotace
         }
     }
 
@@ -374,7 +365,7 @@ class Tvar(var x: Int, var y: Int, val width: Int, val height: Int, val barva: C
 
         val barva = Color(values[4]%256,values[5]%256,values[6]%256) //Vytvoreni promnene barva a nastaveni ji na barvu z pole values
         val (w, h) = Pair(obrazek.width, obrazek.height) //Nevim
-        return Tvar(values[0]%w, values[1]%h, 30, 30, barva, platno) //Vraceni Ctverce/kruhu s danymi parametry + s nove vytvorenymi promnenimy
+        return Tvar(x, y, values[2]%cellSize, values[2]%cellSize, Color.WHITE, rotace, platno) //Vraceni Ctverce/kruhu s danymi parametry + s nove vytvorenymi promnenimy
     }
 
     /**
@@ -389,10 +380,10 @@ class Tvar(var x: Int, var y: Int, val width: Int, val height: Int, val barva: C
      */
     override fun prijmout() {
         platno.imitace = obrazek
-        x += 1
-        if (x == width) {
-            x = 0
-            y += 1
+        x += cellSize
+        if (x == TABLE[0] * cellSize) {
+            x =  0
+            y += cellSize
         }
     }
 }
@@ -417,72 +408,9 @@ fun Color.podobnost(other: Color): Double {
  *  Podrobnější informace zde <A href="https://www.matematika.cz/euklidovy-vety">https://www.matematika.cz/euklidovy-vety</A>
  * */
 fun IntArray.velikost(): Double {
-    return map{ it.toDouble().pow(2) }.sum().pow(.5)
+    return map { it.toDouble().pow(2) }.sum().pow(.5)
 }
 
-//class Obrazek(val original: BufferedImage, val platno: JLabel, val dna: Array<Trojuhelnik>) : Jedinec<Obrazek> {
-//    val obrazek = BufferedImage(original.width, original.height, BufferedImage.TYPE_INT_ARGB)
-//
-//    init {
-//        vykresliDNA()
-//    }
-//
-//    fun vykresliDNA() {
-//        val grafika = obrazek.createGraphics()
-//        for (i in dna) {
-//            i.vykresli(grafika)
-//        }
-//    }
-//
-//    constructor(original: BufferedImage, platno: JLabel) : this(
-//        original,
-//        platno,
-//        dna = Array(10) { Trojuhelnik(original.width, original.height) }
-//    )
-//
-//
-//    override fun skore(): Double {
-//        var soucet = 0.0
-//        val pocetPx = obrazek.width * obrazek.height
-//        val d0 = obrazek.raster.dataBuffer
-//        val d1 = original.raster.dataBuffer
-//        if (d0 is DataBufferInt) if (d1 is DataBufferInt) {
-//            for (i in 0.until(pocetPx).step(30)) {
-//                val ii = Random.nextInt(obrazek.width * obrazek.height)
-//                soucet += ARGB(d0.getElem(i)).distance(ARGB(d1.getElem(i))) / pocetPx.toDouble()
-//            }
-//        }
-//        return soucet
-//    }
-//
-//    override fun mutace(): Obrazek {
-//        val dna = this.dna.clone()
-//
-//
-//        val i = Random.nextInt(dna.size)
-//
-//        dna[i] = dna[i].mutace()
-//
-//
-//        return Obrazek(this.original, this.platno, dna)
-//    }
-//
-//    override fun krizeni(otec: Obrazek): Obrazek {
-//        for (i in 0..5) {
-//            dna[Random.nextInt(0, dna.size)] = otec.dna[Random.nextInt(0, otec.dna.size)]
-//        }
-//
-//        return Obrazek(this.original, this.platno, this.dna)
-//    }
-//
-//    override fun vykresli() {
-//        platno.icon = ImageIcon(obrazek)
-//    }
-//
-//    override fun novy(): Obrazek {
-//        return Obrazek(original, platno)
-//    }
-//}
 
 /**
  * Trida Evoluce(populace) s typovym argumentem J: Trida kteravylepsuje obrazek
@@ -493,7 +421,7 @@ class Evoluce<J: Jedinec<J>>(val populace: Array<Jedinec<J>>) {
      */
     fun spust(presnost: Double): Array<Jedinec<J>> {
         var ix = 0    //Nastaveni promnene ix (index) na 0
-        for (i in 0 until 10000) {    //forcyklus opakujici-se desettisic-krat
+        for (i in 0 until pocetTvaru) {    //forcyklus opakujici-se desettisic-krat
             populace[ix] = (0..20).map { populace[ix].new() }.minBy { it.skore }!! //Nevim
             var timeout = 0     //Nastaveni promnene timeout na 0
             var skore = populace[ix].skore //Nastaveni promnene skore na skore prvku z pole populace na indexu ix (index)
@@ -510,8 +438,8 @@ class Evoluce<J: Jedinec<J>>(val populace: Array<Jedinec<J>>) {
                 }
 //                Thread.sleep(20)
             }
-            if (populace[ix].skore < 0) //Pokud je skore prvku z pole populace na indexu ix
-                populace[ix].prijmout() //Nevim
+//            if (populace[ix].skore) //Pokud je skore prvku z pole populace na indexu ix
+            populace[ix].prijmout() //Nevim
             println("${populace[ix].skore}")  //Vypsani skore prvku z pole populace na indexu ix
 //            Thread.sleep(2000)
         }
@@ -519,6 +447,8 @@ class Evoluce<J: Jedinec<J>>(val populace: Array<Jedinec<J>>) {
     }
 }
 
-
-// 1. nastavit pozadi podle prumerne barvy pixelu
-// 2. vykreslovani tvaru v mrizce (mutace nemeni pozici)
+//1..velikost {
+//  Kreslit cary
+//  Druhy stetec
+//  Mutovat rotaci (zmnenit size (Jedinec), zmneneit get (Jedinec), zmnenit aribut tvaru a zmnenit new ())
+//}

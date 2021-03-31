@@ -279,32 +279,32 @@
 ////0=x*x+1-3
 //
 //
-// /**
-// *    val co_se_stalo = if (x > byvale_x) {
-// *        "x+"
-// *    } else if (x < byvale_x) {
-// *        "x-"
-// *    } else if (y > byvale_y) {
-// *        "y+"
-// *  } else if (y < byvale_y) {
-// *      "y-"
-// *  }
-// *
-// *  if (byvala_chyba > aktualni_chyba) {
-// *      return "dokonale"
-// *  } else {
-// *      if (co_se_stalo = x+) {
-// *          return "moc jsi zvecil x."
-// *          zmensiX()
-// *      } else if (co_se_stalo = x-) {
-// *          return "moc jsi zmensil x."
-// *          zvetsX()
-// *      } else if (co_se_stalo = y+) {
-// *          return "moc jsi zvecil y."
-// *          zmensiY()
-// *      } else if (co_se_stalo = y-) {
-// *          return "moc jsi zmensil y."
-// *          zvetsY()
-// *      }
-// *  }
-// **/
+ /**
+ *    val co_se_stalo = if (x > byvale_x) {
+ *        "x+"
+ *    } else if (x < byvale_x) {
+ *        "x-"
+ *    } else if (y > byvale_y) {
+ *        "y+"
+ *  } else if (y < byvale_y) {
+ *      "y-"
+ *  }
+ *
+ *  if (byvala_chyba > aktualni_chyba) {
+ *      return "dokonale"
+ *  } else {
+ *      if (co_se_stalo = x+) {
+ *          return "moc jsi zvecil x."
+ *          zmensiX()
+ *      } else if (co_se_stalo = x-) {
+ *          return "moc jsi zmensil x."
+ *          zvetsX()
+ *      } else if (co_se_stalo = y+) {
+ *          return "moc jsi zvecil y."
+ *          zmensiY()
+ *      } else if (co_se_stalo = y-) {
+ *          return "moc jsi zmensil y."
+ *          zvetsY()
+ *      }
+ *  }
+ **/
